@@ -41,6 +41,11 @@ class Keyboard:
             )],
         [
             InlineKeyboardButton(
+                text=f'Сертификаты',
+                callback_data=set_callback1.new(func_id='cert')
+            )],
+        [
+            InlineKeyboardButton(
                 text=f'Назад к выбору пиццерии',
                 callback_data='over'
             )],

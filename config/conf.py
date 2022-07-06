@@ -3,6 +3,7 @@ import os
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram import Bot, Dispatcher
 from aiogram.dispatcher.filters.state import StatesGroup, State
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 class Config:
@@ -15,6 +16,7 @@ class Config:
     table = os.getenv('TABLE')
     bot = Bot(token, parse_mode='HTML')
     dp = Dispatcher(bot, storage=MemoryStorage())
+    scheduler = AsyncIOScheduler({'apscheduler.timezone': 'Europe/Moscow'})
 
 
 class States(StatesGroup):

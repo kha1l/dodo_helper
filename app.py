@@ -7,11 +7,19 @@ from keyboard.key import Keyboard
 from psycopg2 import errors
 from psycopg2.errorcodes import UNIQUE_VIOLATION
 from updater.loads import load
+from sending import send_birthday, send_mess_stats, send_mess_week_stats, send_mess_metrics
+from works import get_list_prom, delete_prom
 
 
 cfg = Config()
 db = Database()
 key = Keyboard()
+
+
+cfg.scheduler.add_job(send_birthday, 'cron', day_of_week="*", hour=9, minute=0)
+cfg.scheduler.add_job(send_mess_stats, 'cron', day_of_week="*", hour=9, minute=5)
+cfg.scheduler.add_job(send_mess_week_stats, 'cron', day_of_week="0", hour=9, minute=10)
+cfg.scheduler.add_job(send_mess_metrics, 'cron', day_of_week="*", hour='9-23/2', minute=30)
 
 
 @cfg.dp.message_handler(Command(commands=["start"]))
@@ -79,12 +87,34 @@ async def show_rest(call: types.CallbackQuery, callback_data: dict, state: FSMCo
     chat = call.message.chat.id
     await state.update_data(chat_id=chat, post=callback_data.get('func_id'))
     callback = await state.get_data()
-    try:
-        db.add_client(callback['name'], callback['chat_id'], callback['post'])
-        await call.message.answer(f'\U00002705 Вы подписались на отчет!')
-    except errors.lookup(UNIQUE_VIOLATION):
-        await call.message.answer(f'\U000026A0 Вы уже подписаны на данный отчет!')
+    if callback['post'] != 'cert':
+        try:
+            db.add_client(callback['name'], callback['chat_id'], callback['post'])
+            await call.message.answer(f'\U00002705 Вы подписались на отчет!')
+        except errors.lookup(UNIQUE_VIOLATION):
+            await call.message.answer(f'\U000026A0 Вы уже подписаны на данный отчет!')
+    else:
+        await call.message.answer(f'В разработке...')
+
+
+@cfg.dp.message_handler(Command('help'))
+async def get_os(message: types.Message):
+    await message.answer(f'\U00002709 Для ваших вопросов, предложений и рекомендаций пишите мне - @a_kharlanov')
+
+
+@cfg.dp.message_handler(Command('list'))
+async def get_prom(message: types.Message):
+    emoji_list = u'\U0001F4DA'
+    text = await get_list_prom(str(message.chat.id))
+    await message.answer(f'{emoji_list} Ваши подписки:\n{text}')
+
+
+@cfg.dp.message_handler(Command('del'))
+async def del_prom(message: types.Message):
+    await delete_prom(str(message.chat.id))
+    await message.answer(f'Вы отписались от всех рассылок.')
 
 
 if __name__ == '__main__':
+    cfg.scheduler.start()
     executor.start_polling(cfg.dp)
